@@ -114,8 +114,20 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
                 }
             },
         scope = Scope.settings)
-           
 
+    raw_editor = String(
+        display_name="Editor",
+        default="",
+        scope=Scope.settings,
+        multiline_editor=True, resettable_editor=False
+    )
+
+    raw_html_editor = String(
+        display_name="Editor",
+        default="",
+        scope=Scope.settings,
+        multiline_editor="html", resettable_editor=False
+    )
     
     xblock_id = None
     newly_created_block = True
@@ -138,7 +150,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
     editable_fields = ('display_name', 'max_attempts', 'max_points', 'show_points_earned', 
                        'show_submission_times', 'show_answer', 
                        '_image_url', '_resolver_selection',
-                       '_question_template', '_answer_template', '_variables')
+                       '_question_template', '_answer_template', '_variables', "raw_editor", "raw_html_editor")
 
     has_score = True 
     matlab_server_url = resolver_handling.getDefaultAddress()
