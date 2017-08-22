@@ -47,7 +47,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         display_name="Display Name",
         help="This name appears in the horizontal navigation at the top of the page.",
         scope=Scope.settings,
-        default="Randomized Question Block"
+        default="Question Generator Block"
     )
 
     max_attempts = Integer(
