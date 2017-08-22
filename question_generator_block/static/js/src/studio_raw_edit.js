@@ -167,8 +167,7 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
         runtime.notify('save', {state: 'start', message: gettext("Saving")});
 
         var json_data = JSON.stringify(data)
-        alert(json_data)
-        console.log("JSON data:" + json_data)
+        console.log("Field data JSON:" + json_data)
 
         $.ajax({
             type: "POST",
@@ -191,13 +190,13 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
             runtime.notify('error', {title: gettext("Unable to update settings"), message: message});
         });
     };
-    
-    
+
+
     $(xblockElement).find('a[name=save_button]').bind('click', function(e) {
     	console.log("Save button clicked");
-    	
+
     	error_message_element.empty();
-    	
+
     	// get POSTed data from "SETTINGS" tab
         e.preventDefault();
         var fieldValues = {};
@@ -215,7 +214,7 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
                 field.removeEditor();
             }
         }
-        
+
         // get POSTed data from "EDITOR" tab: XML data, include:
         /*
 			1. problem description
@@ -225,7 +224,7 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
         */
         // 1. el_xml_editor
         var problem_raw_data = xml_editor.getValue();
-        console.log('problem_raw_data: ' + problem_raw_data);
+        console.log('xml_string: ' + problem_raw_data);
 
         // client-side validation error
         if (error_message_element.children().length > 0) { 
