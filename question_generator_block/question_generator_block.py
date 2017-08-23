@@ -108,7 +108,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
     _question_template = String (
         display_name = "Question Template",
         help = "",
-        default = "Given a = <a> and b = <b>. Calculate the sum, difference of a and b.",
+        default = "Given a = [a] and b = [b]. Calculate the sum, difference of a and b.",
         scope = Scope.settings)
 
     # _answer_template = String (
@@ -122,8 +122,8 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         help="Teacher has to fill the answer here!!!",
         default=
             {
-                "sum = [a] + [b]",
-                "difference = [a] - [b]"
+                "sum": "[a] + [b]",
+                "difference": "[a] - [b]"
             },
         scope=Scope.settings
     )
@@ -158,18 +158,16 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
     )
 
     raw_data = '''<problem>
-        <description>Given a = [a] and b = [b]. Calculate the [sum], [difference] of a and b. </description>
+        <description>Given a = [a] and b = [b]. Calculate the sum, difference of a and b. </description>
         <image_group>
                 <image_url link="http://example.com/image1">Image 1</image_url>
-                <image_url link="http://example.com/image2">Image 2</image_url>
         </image_group>
         <variable_group>
                 <variable name="a" type="integer" min_value="1" max_value="200"/>
                 <variable name="b" type="float" min_value="1.0" max_value="200.5" decimal_places="2"/>
         </variable_group>
         <solution_group>
-                <solution sum = "[a] + [b] + [c]" difference = "[a] - [b] - [c]">Answer 1</solution>
-                <solution sum = "[b] + [c] + [a]" difference = "[c] - [b] - [a]">Answer 2</solution>
+                <solution sum = "[a] + [b]" difference = "[a] - [b]">Answer 1</solution>
         </solution_group>
 </problem>
     '''
