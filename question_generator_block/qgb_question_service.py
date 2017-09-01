@@ -55,7 +55,7 @@ def get_decimal_places(var_decimal_places_int):
     return DECIMAL_PLACES[var_decimal_places_int - 1]
 
 
-def generate_question(question_template, variables):
+def generate_question_old(question_template, variables):
     compiled_variable_patterns = {}
     generated_variables = {}
 
@@ -84,14 +84,14 @@ def generate_question(question_template, variables):
     return generated_question, generated_variables
 
 
-def generate_question_edit(question_template, variables):
+def generate_question(question_template, variables):
     compiled_variable_patterns = {}
     generated_variables = {}
 
-    print("## CALLING FUNCTION generate_question_edit() ##")
+    print("## CALLING FUNCTION generate_question() ##")
     print("## START DEBUG INFO ##")
-    print("self._question_template = {}".format(question_template))
-    print("self._variables= {}".format(variables))
+    print("question_template = {}".format(question_template))
+    print("variables= {}".format(variables))
 
     # generate variables' value
     for var_name, variable in variables.iteritems():
@@ -124,7 +124,7 @@ def generate_question_edit(question_template, variables):
 
     print("generated_question= {}".format(generated_question))
     print("## END DEBUG INFO ##")
-    print("## End FUNCTION generate_question_edit() ##")
+    print("## End FUNCTION generate_question() ##")
 
     return generated_question, generated_variables
 
@@ -155,9 +155,8 @@ def generate_answer(generated_variables, answer_template):
 
     print("## CALLING FUNCTION generate_answer() ##")
     print("## START DEBUG INFO ##")
-    print("generated_variables = {}".format(generated_variables))
-    print("answer_template = {}".format(answer_template))
-    print("data type of answer_template = {}".format(type(answer_template)))
+    print("BEFORE, generated_variables = {}".format(generated_variables))
+    print("BEFORE, answer_template = {}".format(answer_template))
 
     # compile regular expression pattern object to search for given variables in the answer template
     compiled_variable_patterns = {}
@@ -180,7 +179,8 @@ def generate_answer(generated_variables, answer_template):
             generated_answer[key] = compiled_variable_patterns[var_name].sub(str(generated_variables[var_name]),
                                                                              generated_answer[key])
 
-    print("generated_answer = {}".format(generated_answer))
+    print("AFTER, generated_answer = {}".format(generated_answer))
+    print("## END DEBUG INFO ##")
     print("## End FUNCTION generate_answer() ##")
 
     return generated_answer

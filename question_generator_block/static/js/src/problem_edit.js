@@ -8,39 +8,35 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
 
     var csxColor = ["#009FE6", "black"];
     var studio_buttons = {
+        "question_template-tab": "TEMPLATE",
         "editor-tab": "EDITOR",
-        "settings-tab": "SETTINGS",
+        "general_information-tab": "SETTINGS",
     };
-    
-    var el_xml_editor = $(xblockElement).find('textarea[name=problem_raw_data]');
+
+    // define tab id mapping of current tab to target tab
+    var target_tabId_map = {
+        'question_template-tab' : "editor-tab",
+        'editor-tab' : "question_template-tab"
+    }
+
+    // define tab id mapping of current tab to target tab
+    var target_tabName_map = {
+        'question_template-tab' : "Basic Template",
+        'editor-tab' : "Advanced Editor"
+    }
+
+    var error_message_element = $(xblockElement).find('div[name=error-message]');
+    var question_template_textarea_element = $(xblockElement).find('textarea[name=question_template]');
     var variables_table_element = $(xblockElement).find('table[name=variables_table]');
     var url_image_input = $(xblockElement).find('input[name=image_url]');
     var answer_template_textarea_element =  $(xblockElement).find('textarea[name=answer_template]');
-    
-    var error_message_element = $(xblockElement).find('div[name=error-message]');
 
-    // FOR NORMAL EDIT, INIT TINYMCE EDITOR FOR SPECIFIC TEXTAREA
-    tinymce.init({
-      selector: '.template-box',
-      plugins: 'link codemirror',
-      toolbar: 'undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | code',
-//      codemirror: {
-//        indentOnInit: true, // Whether or not to indent code on init.
-//        fullscreen: true,   // Default setting is false
-//        path: "" + baseUrl + "/js/vendor",
-//        config: {           // CodeMirror config object
-//           mode: 'application/xml',
-//           lineNumbers: true
-//        },
-//        width: 800,         // Default value is 800
-//        height: 600,        // Default value is 550
-//        saveCursorPosition: true    // Insert caret marker
-//        jsFiles: [          // Additional JS files to load
-//           'mode/clike/clike.js',
-//           'mode/xml/xml.js'
-//        ]
-//      }
-    });
+    var enable_advanced_editor_element = $(xblockElement).find('input[name=enable_advanced_editor]');
+    var enable_advanced_editor = enable_advanced_editor_element.val();
+    var xml_editor_element = $(xblockElement).find('textarea[name=raw_editor_xml_data]');
+    var add_variable_button_element = $(xblockElement).find('li[name=add_variable]');
+//    var template_tab_selector = $(xblockElement).find('li[id=question_template-tab]');
+//    var editor_tab_selector = $(xblockElement).find('li[id=editor-tab]');
 
     // DOM object for xml editor
     var my_XML_Box = '.xml-box';
@@ -52,17 +48,127 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
         lineWrapping: true
     });
 
-//    var editor = CodeMirror.fromTextArea(document.getElementById("problem_editor"), {
-//        mode: "text/html",
-//        lineNumbers: true,
-//        lineWrapping: true
-//    });
 
-//    var editor = CodeMirror.fromTextArea($('#xb-field-edit-problem_editor')[0], {
-//        mode: 'xml',
-//        lineNumbers: true,
-//        lineWrapping: true
-//    });
+    $(function($) {
+        // append tab action bar
+
+//        for (var b in studio_buttons) {
+//            $('.editor-modes')
+//                .append(
+//                    $('<li>', {class: "action-item"}).append(
+//                        $('<a />', {class: "action-primary", id: b, text: studio_buttons[b]})
+//                    )
+//                );
+//        }
+
+        $('.editor-modes')
+                .append(
+                    $('<li>', {class: "action-item"}).append(
+                        $('<a />', {class: "action-primary", id: 'question_template-tab', text: studio_buttons['question_template-tab']})
+                    )
+                );
+
+        $('.editor-modes')
+                .append(
+                    $('<li>', {class: "action-item"}).append(
+                        $('<a />', {class: "action-primary", id: 'general_information-tab', text: studio_buttons['general_information-tab']})
+                    )
+                );
+
+        // Set default tab
+        tab_switch("question_template-tab");
+
+        $('#question_template-tab').click(function() {
+            tab_switch("question_template-tab");
+        });
+
+        $('#editor-tab').click(function() {
+            tab_switch("editor-tab");
+        });
+
+        $('#general_information-tab').click(function() {
+            tab_switch("general_information-tab");
+        });
+
+        $('#btn_switch_editor_mode').click(function() {
+            // get current tab
+            var current_tab = $(this).attr('tab-name');
+
+            console.log('previous tab id:' + current_tab);
+            console.log('targeted tab id:' + target_tabId_map[current_tab]);
+            console.log('targeted tab name:' + studio_buttons[target_tabId_map[current_tab]]);
+            console.log('next editor mode:' + target_tabName_map[current_tab]);
+            console.log('enable_advanced_editor:' + enable_advanced_editor);
+
+            if(enable_advanced_editor == 'False') {
+                if(! confirmConversionToXml())
+                    return;
+                // if confirmed, proceed
+                // update editor mode
+                enable_advanced_editor = 'True'; // update global variable
+                enable_advanced_editor_element.val(enable_advanced_editor); // update value to hidden input element
+
+                // TODO: remove button 'Add Variable'
+//                add_variable_button_element.hide();
+            } else {
+                if(! confirmConversionToTemplate())
+                    return;
+                // if confirmed, proceed
+                // update editor mode
+                enable_advanced_editor = 'False'; // update global variable
+                enable_advanced_editor_element.val(enable_advanced_editor); // update value to hidden input element
+            }
+
+            // update attributes for the current tab <li> tag
+            // update text
+            $("#"+current_tab).text(studio_buttons[target_tabId_map[current_tab]]);
+            // update attribute
+            $("#"+current_tab).attr('id',target_tabId_map[current_tab]);
+
+            // update attributes for the switching editor button
+            // update text
+            $('#btn_switch_editor_mode').text(target_tabName_map[current_tab]);
+            // update attribute
+            $('#btn_switch_editor_mode').attr('tab-name',target_tabId_map[current_tab]);
+
+            // switch to the targeted tab
+            tab_switch(target_tabId_map[current_tab]);
+
+            // TODO: update enable_advanced_editor_element.val() and xblock global variable 'enable_advanced_editor'
+        });
+
+        // listeners for "Remove" buttons of "Variables"
+        variables_table_element.find('input[type=button][class=remove_button]').bind('click', function(e) {
+        	var removeButton = $(this);
+        	var parentRow = removeButton.closest('tr');
+        	parentRow.remove();
+        });
+
+        // hide advanced editor
+//        if (enable_advanced_editor) {
+//            editor_tab_selector.show();
+//        } else {
+//            editor_tab_selector.hide();
+//        }
+    });
+
+
+    /*
+     Have the user confirm the one-way conversion to XML.
+     Returns true if the user clicked OK, else false.
+     */
+    function confirmConversionToXml() {
+        return confirm(gettext('If you use the Advanced Editor, this problem will be converted to XML and you will not be able to return to the Simple Editor Interface.\n\nProceed to the Advanced Editor and convert this problem to XML?')); // eslint-disable-line max-len, no-alert
+    };
+
+    /*
+     Have the user confirm the one-way conversion to XML.
+     Returns true if the user clicked OK, else false.
+     */
+    function confirmConversionToTemplate() {
+        return confirm(gettext('Are you sure you want to convert back to Simple Editor Interface.\n\nProceed ?')); // eslint-disable-line max-len, no-alert
+    };
+
 
    function fillErrorMessage(errorMessage) {
 		error_message_element.empty();
@@ -163,16 +269,12 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
     });
 
     var studioSubmit = function(data) {
-        var handlerUrl = runtime.handlerUrl(xblockElement, 'fe_submit_studio_raw_edits');
+        var handlerUrl = runtime.handlerUrl(xblockElement, 'fe_submit_studio_edits');
         runtime.notify('save', {state: 'start', message: gettext("Saving")});
-
-        var json_data = JSON.stringify(data)
-        console.log("Field data JSON:" + json_data)
-
         $.ajax({
             type: "POST",
             url: handlerUrl,
-            data: json_data,
+            data: JSON.stringify(data),
             dataType: "json",
             global: false,  // Disable Studio's error handling that conflicts with studio's notify('save') and notify('cancel') :-/
             success: function(response) { runtime.notify('save', {state: 'end'}); }
@@ -192,12 +294,41 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
     };
 
 
+    var updateEditorMode = function(data) {
+        var handlerUrl = runtime.handlerUrl(xblockElement, 'update_editor_mode');
+        runtime.notify('update_editor_mode', {state: 'start', message: gettext("Updating")});
+
+        console.log('In updateEditorMode:' + JSON.stringify(data));
+
+        $.ajax({
+            type: "POST",
+            url: handlerUrl,
+            data: JSON.stringify(data),
+            dataType: "json",
+            global: false,  // Disable Studio's error handling that conflicts with studio's notify('save') and notify('cancel') :-/
+            success: function(response) { runtime.notify('update_editor_mode', {state: 'end'}); }
+        }).fail(function(jqXHR) {
+            var message = gettext("This may be happening because of an error with our server or your internet connection. Try refreshing the page or making sure you are online.");
+            if (jqXHR.responseText) { // Is there a more specific error message we can show?
+                try {
+                    message = JSON.parse(jqXHR.responseText).error;
+                    if (typeof message === "object" && message.messages) {
+                        // e.g. {"error": {"messages": [{"text": "Unknown user 'bob'!", "type": "error"}, ...]}} etc.
+                        message = $.map(message.messages, function(msg) { return msg.text; }).join(", ");
+                    }
+                } catch (error) { message = jqXHR.responseText.substr(0, 300); }
+            }
+            runtime.notify('error', {title: gettext("Unable to update Editor mode"), message: message});
+        });
+    };
+    
+    // Save action
     $(xblockElement).find('a[name=save_button]').bind('click', function(e) {
     	console.log("Save button clicked");
-
+    	
     	error_message_element.empty();
-
-    	// get POSTed data from "SETTINGS" tab
+    	
+    	// "General information" tab
         e.preventDefault();
         var fieldValues = {};
         var fieldValuesNotSet = []; // List of field names that should be set to default values
@@ -215,26 +346,115 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
             }
         }
 
-        // get POSTed data from "EDITOR" tab: XML data, include:
+        // 1. xml_editor_element
+        var raw_editor_xml_data = xml_editor.getValue();
+        console.log('raw_editor_xml_data: ' + raw_editor_xml_data);
+        
+        
+        // "Template" tab
         /*
-			1. problem description
-			2. variables (name, min_value, max_value, type, decimal_places)
+			1. question_template
+			2. variables (name, min_valua, max_value, type, decimal_places)
 			3. answer_template
-			4. Image url
         */
-        // 1. el_xml_editor
-        var problem_raw_data = xml_editor.getValue();
-        console.log('xml_string: ' + problem_raw_data);
+        // 1. question_template_textarea_element
+        var question_template = question_template_textarea_element.val();
+        console.log('question_template: ' + question_template);
+        var image_url = url_image_input.val();
+        console.log('image_url: ' + image_url);
+//        var resolver_element = $(xblockElement).find('input[name=Resolver]:checked');
+//        var resolver_selection = resolver_element.val();
+//        console.log('resolver_selection: ' + resolver_selection);
+        
+        // 2. variables_table_element
+        var variables = {};
+    	variables_table_element.find('tr').each(function(row_index) {
+    		if (row_index > 0) { // first row is the header
+    			var variable = {}
+    			
+    			var columns = $(this).find('td');
+    			
+    			// 2nd column: "variable name"
+    			var variable_name = columns.eq(1).children().eq(0).val();
 
+    			if (variable_name.length == 0) { // empty variable name
+    				fillErrorMessage('Variable name can not be empty');
+    				return false;
+    			}
+    			
+    			if (variables.hasOwnProperty(variable_name)) { // duplicate verification
+    				fillErrorMessage('Variable names can not be duplicated');
+    				return false;
+    			}
+    			
+    			variable['name'] = variable_name;
+
+    			
+    			// 3rd column: "min_value"
+    			var min_value = columns.eq(2).children().eq(0).val();
+    			
+    			if (min_value.length == 0) { // empty min_value
+    				fillErrorMessage('min_value can not be empty');
+    				return false;
+    			}
+    			
+    			variable['min_value'] = min_value;
+
+    			
+    			// 4th column: "max_value"
+    			var max_value = columns.eq(3).children().eq(0).val();
+
+    			if (max_value.length == 0) { // empty max_value
+    				fillErrorMessage('max_value can not be empty');
+    				return false;
+    			}
+    			
+    			var min_value_numer = Number(min_value);
+    			var max_value_number = Number(max_value);
+    			if (min_value_numer > max_value_number) {
+    				fillErrorMessage('min_value can not be bigger than max_value');
+    				return false;
+    			}
+    			
+    			variable['max_value'] = max_value;
+    			
+
+    			// 5th column: "type"
+    			var type = columns.eq(4).children().eq(0).val();
+    			variable['type'] = type;
+
+    			
+    			// 6th column: "decimal_places"
+    			var decimal_places = columns.eq(5).children().eq(0).val();
+    			variable['decimal_places'] = decimal_places;
+    			
+    			variables[variable_name] = variable;
+    			console.log('Row ' + row_index + ': variable_name: ' + variable_name + ', min: ' + min_value + ', max: ' + max_value + ', type: ' + type + ', decimal_places: ' + decimal_places);
+    		}
+    	});
+    	
+    	
+    	// 3. answer_template 
+        var answer_template = answer_template_textarea_element.val();
+        console.log('answer_template: ' + answer_template);
+        
+        
         // client-side validation error
         if (error_message_element.children().length > 0) { 
         	return;
         }
-        
-        // server side validation
+
 //        debugger;
-        var data = {problem_raw_data: problem_raw_data, values: fieldValues, defaults: fieldValuesNotSet}
-	    studioSubmit(data);
+        // server side validation
+
+        // update editor mode first
+//        var mode_data = {enable_advanced_editor: enable_advanced_editor};
+//        console.log('mode_data:' + JSON.stringify(mode_data));
+//        updateEditorMode(mode_data);
+
+        // perform studio submit
+        var submit_data = {enable_advanced_editor: enable_advanced_editor, values: fieldValues, defaults: fieldValuesNotSet, question_template: question_template, image_url: image_url, variables: variables, answer_template: answer_template, raw_editor_xml_data: raw_editor_xml_data};
+	    studioSubmit(submit_data);
     });
 
 
@@ -374,12 +594,12 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
     
     
     function update_buttons(toShow) {
-    	if (toShow == 'settings-tab') {
-    		// hide "Add variable" and "Add expression" buttons
-    		$("li[name=add_variable]").hide()
-    	} else {
-    		// show "Add variable" and "Add expression" buttons
+    	if (toShow == 'question_template-tab') {
+    	    // show "Add variable" and "Add expression" buttons
     		$("li[name=add_variable]").show()
+    	} else {
+    	    // hide "Add variable" and "Add expression" buttons
+    		$("li[name=add_variable]").hide()
     	}
     }
 
@@ -394,33 +614,6 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
     }
 
 
-    $(function($) {
-        for (var b in studio_buttons) {
-            $('.editor-modes')
-                .append(
-                    $('<li>', {class: "action-item"}).append(
-                        $('<a />', {class: "action-primary", id: b, text: studio_buttons[b]})
-                    )
-                );
-        }
 
-        // Set main pane to "General information"
-        tab_switch("editor-tab");
-    
-        $('#settings-tab').click(function() {
-            tab_switch("settings-tab");
-        });
 
-        $('#editor-tab').click(function() {
-            tab_switch("editor-tab");
-        });
-        
-        
-        // listeners for "Remove" buttons of "Variables"
-        variables_table_element.find('input[type=button][class=remove_button]').bind('click', function(e) {
-        	var removeButton = $(this);
-        	var parentRow = removeButton.closest('tr');
-        	parentRow.remove();
-        });
-    });
 }

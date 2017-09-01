@@ -1,23 +1,98 @@
-<!--{% load i18n %}-->
+{% load i18n %}
 
 <div class="editor-with-buttons" xmlns="http://www.w3.org/1999/html">
+    <div>
+        <input type="hidden" class="hidden" name="enable_advanced_editor" value="{{ enable_advanced_editor }}" />
+    </div>
 
-	<!--FOR ERROR DISPLAY-->
 	<div name="error-message"></div>
 
-	<!--EDITOR TAB-->
-	<div name="editor-tab" id="editor-tab" class="wrapper-comp-settings is-active ">
+    <!-- SWITCH UI DISPLAY OF EDITOR -->
+    <div class="editor-bar">
+        <ul class="editor-tabs">
+            <li><button type="button" id="btn_switch_editor_mode" tab-name="question_template-tab" class="xml-tab advanced-toggle " data-tab="xml" title="Switch Editor mode">Advanced Editor</button></li>
+        </ul>
+    </div>
+
+	<div class="wrapper-comp-settings is-active editor-with-buttons question_template" name="question_template-tab" id="question_template-tab">
+        <ul class="list-input settings-list" name="question_template_list">
+
+	        <li class="field comp-setting-entry metadata_entry">
+				<div class="wrapper-comp-setting">
+					<label class="label setting-label" for="question_template">Question template</label>
+					<textarea name="question_template" rows=10 cols=70>{{ question_template }}</textarea>
+	        	</div>
+	        </li>
+
+	        <li class="field comp-setting-entry metadata_entry">
+				<div class="wrapper-comp-setting">
+					<label class="label setting-label" for="image_url">Image</label>
+					<input name="image_url" type="text" class="field-data-control" id="xb-field-edit-image" value="{{ image_url }}" />
+	        	</div>
+			</li>
+
+	        <li
+	          class="field comp-setting-entry metadata_entry"
+	          data-field-name="Variable"
+	          data-default="Variable default value"
+	          data-cast="String"
+	        >
+				<div class="wrapper-comp-setting">
+					<table name="variables_table" class="variables_table">
+						<tr class="formula_edit_table_header_color">
+							<th width="15%" class="table_cell_alignment">Variables</th>
+							<th width="18%" class="table_cell_alignment">Name</th>
+							<th width="13%" class="table_cell_alignment">Min</th>
+							<th width="13%" class="table_cell_alignment">Max</th>
+							<th width="13%" class="table_cell_alignment">Type</th>
+							<th width="13%" class="table_cell_alignment">Decimal Places</th>
+							<th width="10%"></th>
+							<th width="5%"></th>
+						</tr>
+
+						{% for variable_name, variable in variables.iteritems %}
+							<tr class="formula_edit_table_row">
+								<td></td>
+								<td class="table_cell_alignment"><input type="text" name="variable-{{ variable.name }}" class="formula_input_text" value="{{ variable.name }}"></td>
+								<td class="table_cell_alignment number_input_cell"><input type="number" name="variable_min_value-{{ variable.name }}" class="formula_input_text" value="{{ variable.min_value }}"></td>
+								<td class="table_cell_alignment number_input_cell"><input type="number" name="variable_max_value-{{ variable.name }}" class="formula_input_text" value="{{ variable.max_value }}"></td>
+								<td class="table_cell_alignment">
+									<select name="variable_type-{{ variable.name }}-{{ variable.type }}" class="formula_input_text">
+										<option value="int" {% if variable.type == "int" %}selected="true"{% endif %}>int</option>
+										<option value="float" {% if variable.type == "float" %}selected="true"{% endif %}>float</option>
+									</select>
+								</td>
+								<td class="table_cell_alignment number_input_cell"><input type="number" name="variable_value_decimal_places-{{ variable.name }}" class="formula_input_text" min="0" max="7" value="{{ variable.decimal_places }}"></td>
+								<td class="table_cell_alignment"><input type="button" class="remove_button" value="Remove"></td>
+								<td></td>
+							</tr>
+						{% endfor %}
+					</table>
+	        	</div>
+	        </li>
+
+
+	        <li class="field comp-setting-entry metadata_entry">
+				<div class="wrapper-comp-setting">
+					<label class="label setting-label" for="answer_template">Answer template</label>
+					<textarea name="answer_template" rows=10 cols=70>{{ answer_template }}</textarea>
+	        	</div>
+	        </li>
+
+		</ul>
+	</div>
+
+    <!--EDITOR TAB-->
+	<div name="editor-tab" id="editor-tab" class="wrapper-comp-settings editor-with-buttons is-active">
 		<section class="raw-edit problem-editor editor">
-		  <textarea name="problem_raw_data" id="problem-editor" class="xml-box" rows="8" cols="40">{{problem_raw_data}}</textarea>
+		  <textarea name="raw_editor_xml_data" id="problem-editor" class="xml-box" rows="8" cols="40">{{ raw_editor_xml_data}}</textarea>
 		</section>
 	</div>
-	<!--<%include file="metadata-edit.html" />-->
 
-	<!--SETTINGS TAB-->
-	<div class="wrapper-comp-settings editor-with-buttons is-active general_information" name="settings-tab" id="settings-tab">
+    <div class="wrapper-comp-settings is-active editor-with-buttons general_information" name="general_information-tab" id="settings-tab">
 		<ul class="list-input settings-list">
 			{% for field in fields %}
-				{% if field.name != "_image_url" and field.name != "_resolver_selection" and field.name != "_question_template" and	field.name != "_answer_template" and field.name != "_variables" and	field.name != "_problem_raw_data"%}
+				{% if field.name != "_image_url" and field.name != "_resolver_selection" and field.name != "_question_template" and field.name != "_answer_template" and field.name != "_variables" and	field.name != "_raw_editor_xml_data"%}
 					<li
 					  class="field comp-setting-entry metadata_entry {% if field.is_set %}is-set{% endif %}"
 					  data-field-name="{{field.name}}"
@@ -117,6 +192,7 @@
 		</ul>
 	</div>
 
+
 	<div class="xblock-actions">
 		<ul>
 
@@ -130,14 +206,13 @@
 				<a href="#" class="button cancel-button">{% trans "Cancel" %}</a>
 			</li>
 
+			{% if is_submitted == 'False' %}
+				<li name="add_variable" class="action-item">
+					<a href="#" class="button action-primary save-button" name="add_variable_button">Add variable</a>
+				</li>
+			{% endif %}
 		</ul>
 	</div>
 </div>
-
-
-
-
-
-
 
 
