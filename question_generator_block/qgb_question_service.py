@@ -130,16 +130,26 @@ def generate_question(question_template, variables):
 
 
 # TODO: remove this function
-def generate_answer_old(generated_variables, answer_template):
+def generate_answer_string(generated_variables, answer_template_string):
+
+    print("## CALLING FUNCTION generate_answer_string() ##")
+    print("## START DEBUG INFO ##")
+    print("BEFORE, generated_variables = {}".format(generated_variables))
+    print "BEFORE, _answer_template_string = ", answer_template_string
+
     compiled_variable_patterns = {}
     for var_name, var_value in generated_variables.iteritems():
         # compiled_variable_patterns[var_name] = re.compile('<' + var_name + '>')
         compiled_variable_patterns[var_name] = re.compile('\[' + var_name + '\]')
 
-    generated_answer = answer_template
+    generated_answer = answer_template_string  # string
     for var_name, var_value in generated_variables.iteritems():
         generated_answer = compiled_variable_patterns[var_name].sub(str(generated_variables[var_name]),
                                                                     generated_answer)
+
+    print "AFTER, generated_answer = ", generated_answer
+    print("## END DEBUG INFO ##")
+    print("## End FUNCTION generate_answer_string() ##")
 
     return generated_answer
 
@@ -156,7 +166,7 @@ def generate_answer(generated_variables, answer_template):
     print("## CALLING FUNCTION generate_answer() ##")
     print("## START DEBUG INFO ##")
     print("BEFORE, generated_variables = {}".format(generated_variables))
-    print("BEFORE, answer_template = {}".format(answer_template))
+    print("BEFORE, _answer_template_string = {}".format(answer_template))
 
     # compile regular expression pattern object to search for given variables in the answer template
     compiled_variable_patterns = {}

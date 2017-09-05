@@ -33,7 +33,7 @@ function QuestionGeneratorXBlock(runtime, xblockElement) {
   	
     // Old version,
     // TODO: remove this
-  	function handleShowAnswerResult_old(result) {
+  	function handleShowAnswerResultString(result) {
   		console.log('handleShowAnswerResult INVOKED');
 
   		var teacher_answer = result['generated_answer'];
@@ -124,7 +124,8 @@ function QuestionGeneratorXBlock(runtime, xblockElement) {
     			}
     			
     			var handlerUrl = runtime.handlerUrl(xblockElement, 'show_answer_handler');
-    			$.post(handlerUrl, JSON.stringify(data)).success(handleShowAnswerResult);
+//    			$.post(handlerUrl, JSON.stringify(data)).success(handleShowAnswerResult);
+    			$.post(handlerUrl, JSON.stringify(data)).success(handleShowAnswerResultString);
     		});
     	}
     });

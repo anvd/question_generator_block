@@ -114,12 +114,22 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
 
     _answer_template = Dict(
         display_name="Answer Template",
-        help="Teacher has to fill the answer here!!!",
+        help="Teacher has to fill the answer template here!!!",
         default=
             {
                 "sum": "[a] + [b]",
                 "difference": "[a] - [b]"
             },
+        scope=Scope.settings
+    )
+
+    _answer_template_string = String(
+        display_name="Answer Template",
+        help="Teacher has to fill the answer template here!!!",
+        default= '''
+            sum = [a] + [b],
+            difference = [a] - [b]
+        ''',
         scope=Scope.settings
     )
 
@@ -200,7 +210,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
     image_url = ""
     question_template_string = ""
     variables = {}
-    answer_template = ""
+    # _answer_template_string = ""
     _generated_question = ""
     _generated_variables = {}
     student_answer = ""
@@ -236,7 +246,6 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
 
         print("self._generated_question = {}".format(self._generated_question))
         print("self._generated_variables = {}".format(self._generated_variables))
-        print("## END DEBUG INFO ##")
 
         # load submission data to display the previously submitted result
         submissions = sub_api.get_submissions(self.student_item_key, 1)
@@ -264,6 +273,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
 
 
         self.serialize_data_to_context(context)
+
         # Add following fields to context variable
         context['disabled'] = should_disbled
         context['student_answer'] = self.student_answer
@@ -321,7 +331,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         context['resolver_selection'] = self._resolver_selection
         context['question_template'] = self._question_template
         context["variables"] = self._variables
-        context['answer_template'] = self._answer_template
+        context['answer_template_string'] = self._answer_template_string
         context['is_submitted'] = 'False'
         context['enable_advanced_editor'] = self.enable_advanced_editor
 
@@ -354,21 +364,26 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         Save data to context to re-use later to avoid re-accessing the DBMS
         """
         print("## CALLING FUNCTION serialize_data_to_context() ##")
+
+        print("## BEFORE ADDING FIELDS ##")
+        print("context = {}".format(context))
         print("## START DEBUG INFO ##")
         print("self._question_template = {}".format(self._question_template))
         print("self._image_url = {}".format(self._image_url))
         print("self._variables= {}".format(self._variables))
         print("self._generated_variables= {}".format(self._generated_variables))
-        print("self._answer_template= {}".format(self._answer_template))
-        print("## BEFORE ADDING FIELDS ##")
-        print("context = {}".format(context))
+        # print("self._answer_template= {}".format(self._answer_template))
+        print "self._answer_template_string = ", self._answer_template_string
+
 
         # Add following fields to context variable
         context['saved_question_template'] = self._question_template
         context['saved_url_image'] = self._image_url
         context['serialized_variables'] = json.dumps(self._variables)
         context['serialized_generated_variables'] = json.dumps(self._generated_variables)
-        context['saved_answer_template'] = self._answer_template
+        # context['saved_answer_template'] = self._answer_template  # dict
+        context['saved_answer_template'] = self._answer_template_string # string
+
         # context['saved_resolver_selection'] = self._resolver_selection # Old
         context['saved_resolver_selection'] = self._solver  # use _solver from editable_fields
 
@@ -389,13 +404,17 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         print("self._image_url = {}".format(self._image_url))
         print("self._variables= {}".format(self._variables))
         print("self._generated_variables= {}".format(self._generated_variables))
-        print("self._answer_template= {}".format(self._answer_template))
+        # print("self._answer_template= {}".format(self._answer_template))
+        print "self._answer_template_string = ", self._answer_template_string
+
         print("## BEFORE ##")
         print("context = {}".format(context))
 
         self.question_template_string = context['saved_question_template']
         self.image_url = context['saved_url_image']
-        self.answer_template = context['saved_answer_template']
+        # self._answer_template = context['saved_answer_template']
+        self._answer_template_string = context['saved_answer_template']
+        #
         self.variables = json.loads(context['serialized_variables'])
         self._generated_variables = json.loads(context['serialized_generated_variables'])
         self.resolver_selection = context['saved_resolver_selection']   # TODO: update this to new field in Settings tab
@@ -403,8 +422,8 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         print("## GLOBAL VARIABLES, AFTER: ##")
         print("self._question_template = {}".format(self.question_template_string))
         print("self.image_url = {}".format(self.image_url))
-        print("self.answer_template = {}".format(self.answer_template))
-        print("self._answer_template= {}".format(self._answer_template))
+        # print("self._answer_template= {}".format(self._answer_template))
+        print "self._answer_template_string = ", self._answer_template_string
         print("self.variables = {}".format(self.variables))
         print("self._variables= {}".format(self._variables))
         print("self._generated_variables = {}".format(self._generated_variables))
@@ -421,7 +440,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         if self.xblock_id is None:
             self.xblock_id = unicode(self.location.replace(branch=None, version=None))
 
-        self.question_template_string, self.image_url, self.resolver_selection, self.variables, self.answer_template = qgb_db_service.fetch_question_template_data(self.xblock_id)
+        self.question_template_string, self.image_url, self.resolver_selection, self.variables, self._answer_template_string = qgb_db_service.fetch_question_template_data(self.xblock_id)
 
 
     @XBlock.json_handler
@@ -440,8 +459,11 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
 
         # TODO generate the teacher's answer
         # Generate answer for this submission
-        generated_answer = qgb_question_service.generate_answer(self._generated_variables, self._answer_template)
-        print("generated_answer = {}".format(generated_answer))
+        # generated_answer = qgb_question_service.generate_answer(self._generated_variables, self._answer_template)
+        # print("generated_answer = {}".format(generated_answer))
+
+        generated_answer = qgb_question_service.generate_answer_string(self._generated_variables, self._answer_template_string)
+        print "generated_answer = ", generated_answer
 
         student_answer = data['student_answer']
         # save the submission
@@ -505,8 +527,9 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
 
         print("BEFORE SAVE, self.enable_advanced_editor = {}".format(self.enable_advanced_editor))
         print("targeted mode, data['enable_advanced_editor'] = {}".format(data['enable_advanced_editor']))
-        print("Data type of data['enable_advanced_editor'] = {}".format(type(data['enable_advanced_editor'])))
+
         print("self.raw_editor_xml_data = {}".format(self.raw_editor_xml_data))
+        print("Data type of data['answer_template'] = {}".format(type(data['answer_template'])))
 
         if self.xblock_id is None:
             self.xblock_id = unicode(self.location.replace(branch=None, version=None))
@@ -522,6 +545,10 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
 
             #qgb_db_service.update_question_template(self.xblock_id, updated_question_template, updated_url_image, updated_resolver_selection, updated_variables, updated_answer_template)
 
+            print("BEFORE, self._answer_template_string = ")
+            print(self._answer_template_string)
+            print("Data type of self._answer_template_string = {}".format(type(self._answer_template_string)))
+            print("Data type of updated_answer_template = {}".format(type(updated_answer_template)))
 
             # Update XBlock's values
             self.enable_advanced_editor = False
@@ -529,12 +556,33 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             self.image_url = updated_url_image
             # self.resolver_selection = updated_resolver_selection
             self.variables = updated_variables
-            self.answer_template = updated_answer_template
+            self._answer_template_string = updated_answer_template
+
+            print("AFTER, self._answer_template_string = ")
+            print(self._answer_template_string)
+            print("Data type of self._answer_template_string = {}".format(type(self._answer_template_string)))
+
             setattr(self, '_image_url', updated_url_image)
             # setattr(self, '_resolver_selection', updated_resolver_selection)
             setattr(self, '_question_template', updated_question_template)
-            setattr(self, '_answer_template', updated_answer_template)
+            # setattr(self, '_answer_template', updated_answer_template)
+            setattr(self, '_answer_template_string', updated_answer_template)
             setattr(self, '_variables', updated_variables)
+
+            # build xml string to use for advanced editor
+            # TODO: write function to build xml data for raw editor
+            input_data = {
+                'question_template': self.question_template_string,
+                'image_url': self.image_url,
+                'variables': self.variables,
+                'answer_template': self._answer_template_string
+            }
+
+            # Convert data to xml
+            xml_string = self.convert_problem_data_to_xml(input_data)
+
+            # update value for field attribute
+            setattr(self, '_raw_editor_xml_data', xml_string)
 
         elif data['enable_advanced_editor'] == 'True':
             print("### IN CASE self.enable_advanced_editor == True: ###")
@@ -551,9 +599,19 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             updated_question_template = raw_edit_data['question_template']
             updated_url_image = raw_edit_data['image_url']
             updated_variables = raw_edit_data['variables']
-            updated_answer_template = raw_edit_data['solutions'][
-                1]  # get only one firt answer for now. TODO: update to support multi-answers attributes for multiple solutions
+            # get only one firt answer for now. TODO: update to support multi-answers attributes for multiple solutions
+            updated_answer_template_dict = raw_edit_data['solutions'][1]
             # updated_resolver_selection = data['_solver']
+
+            # convert answer dict to string
+            updated_answer_template = self.dict_to_string(updated_answer_template_dict)
+
+
+            print("BEFORE, self._answer_template_string = ")
+            print(self._answer_template_string)
+
+            print("Data type of self._answer_template_string = {}".format(type(self._answer_template_string)))
+            print("Data type of updated_answer_template = {}".format(type(updated_answer_template)))
 
             # "refresh" XBlock's values
             # update values to global variables
@@ -561,13 +619,20 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             self.question_template_string = updated_question_template
             self.image_url = updated_url_image
             self.variables = updated_variables
-            self.answer_template = updated_answer_template
+            # setattr(self, '_answer_template', updated_answer_template)
+            self._answer_template_string = updated_answer_template
             # self.resolver_selection = updated_resolver_selection
+
+            print("AFTER, self._answer_template_string = ")
+            print(self._answer_template_string)
+
+            print("Data type of self._answer_template_string = {}".format(type(self._answer_template_string)))
 
             # update values to global fields
             setattr(self, '_question_template', updated_question_template)
             setattr(self, '_image_url', updated_url_image)
-            setattr(self, '_answer_template', updated_answer_template)
+            # setattr(self, '_answer_template', updated_answer_template)
+            setattr(self, '_answer_template_string', updated_answer_template)
             setattr(self, '_variables', updated_variables)
             # setattr(self, '_resolver_selection', updated_resolver_selection)
 
@@ -600,10 +665,11 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             newly_removed_fields=to_reset,
             fallback_obj=self
         )
+
+        self.validate_field_data(validation, preview_data)
         print("preview_data fields: {}".format(preview_data))
         print("## End DEBUG INFO ###")
 
-        self.validate_field_data(validation, preview_data)
         if validation:
             for field_name, value in values.iteritems():
                 setattr(self, field_name, value)
@@ -612,6 +678,17 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             return {'result': 'success'}
         else:
             raise JsonHandlerError(400, validation.to_json())
+
+
+    def dict_to_string(self, dict, sep = '\n'):
+
+        result = ""
+
+        for key, value in dict.iteritems():
+            result = result + key + '=' + value
+            result = result + sep
+
+        return result
 
     @XBlock.json_handler
     def fe_submit_studio_raw_edits(self, data, suffix=''):
@@ -649,7 +726,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         self.question_template_string = updated_question_template
         self.image_url = updated_url_image
         self.variables = updated_variables
-        self.answer_template = updated_answer_template
+        self._answer_template_string = updated_answer_template
         # self.resolver_selection = updated_resolver_selection
 
         # update values to global fields
@@ -706,7 +783,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             1. problem description
             2. Image url
             3. variables (name, min_value, max_value, type, decimal_places)
-            4. answer_template
+            4. _answer_template_string
 
 
         <problem>
@@ -791,7 +868,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             1. problem description
             2. Image url
             3. variables (name, min_value, max_value, type, decimal_places)
-            4. answer_template
+            4. _answer_template_string
 
 
         <problem>
@@ -818,57 +895,24 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
 
         # Reading the xml data from a string:
         # fromstring() parses XML from a string directly into an Element, which is the root element of the parsed tree.
-        problem = ET.fromstring(data)
-        problem_childs = problem.getchildren()
-        # print(problem_childs)
 
-        # init a dict to store problem field values extracted from the xml string
-        problem_data_fields = {}
+        xml_string = ''''''
+        problem = ET.Element('problem')
 
-        for field in problem_childs:
-            # print("field.tag: " + field.tag)
-            # print("field.attrib: ", field.attrib)
-            if field.tag == "description":
-                # extract the question template
-                problem_data_fields["question_template"] = field.text
-            elif field.tag == "image_group":
-                # Extract image url
-                #
-                # A problem can have many images
-                # only get first image_url for now
-                # TODO: support multiple images
-                image_urls = field.findall('image_url')  # find all direct children only for this field.
-                # get first image_url
-                problem_data_fields["image_url"] = image_urls[0].get('link')  # get its link attrib
-            elif field.tag == "variable_group":
-                # Extract variables info
-                problem_data_fields["variables"] = {}  # initialize the variables dict
-                # find all direct childs of element 'variable_group'
-                variable_list = field.findall("variable")
-                for variable in variable_list:
-                    variable_attributes = variable.attrib
-                    var_name = variable_attributes["name"]
-                    # if var_type == "float":
-                    #     var_decimal_places = variable_attributes["decimal_places"]
+        description = ET.SubElement(problem, 'description')
 
-                    # add each variable into the variable dict
-                    problem_data_fields["variables"][var_name] = variable_attributes
+        image_group = ET.SubElement(problem, 'image_group')
+        image_url = ET.SubElement(image_group, 'image_url')
 
-            elif field.tag == "solution_group":
-                # Extract the solutions
-                problem_data_fields["solutions"] = {}  # initialize the solutions dict
-                # find all direct childs of element 'solver_group'
-                solver_list = field.findall("solution")
-                i = 0
-                for solver in solver_list:
-                    i = i + 1
-                    solver_attributes = solver.attrib
-                    # add each solution into the problem data
-                    problem_data_fields["solutions"][i] = solver_attributes
+        variable_group = ET.SubElement(problem, 'variable_group')
+        variable = ET.SubElement(variable_group, 'variable')
 
-            print("## End FUNCTION convert_problem_data_to_xml() ##")
+        solution_group = ET.SubElement(problem, 'solution_group')
+        solution = ET.SubElement(solution_group, 'solution')
 
-        return problem_data_fields
+        print("## End FUNCTION convert_problem_data_to_xml() ##")
+
+        return xml_string
 
 
     @property
@@ -900,7 +944,8 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
 
         self.deserialize_data_from_context(data)
 
-        generated_answer = qgb_question_service.generate_answer(self._generated_variables, self._answer_template)
+        # generated_answer = qgb_question_service.generate_answer(self._generated_variables, self._answer_template)
+        generated_answer = qgb_question_service.generate_answer_string(self._generated_variables, self._answer_template_string)
 
         print("generated_answer = {}".format(generated_answer))
         print("## START DEBUG INFO ##")

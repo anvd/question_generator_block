@@ -75,7 +75,7 @@
 	        <li class="field comp-setting-entry metadata_entry">
 				<div class="wrapper-comp-setting">
 					<label class="label setting-label" for="answer_template">Answer template</label>
-					<textarea name="answer_template" rows=10 cols=70>{{ answer_template }}</textarea>
+					<textarea name="answer_template" rows=10 cols=70>{{ answer_template_string }}</textarea>
 	        	</div>
 	        </li>
 
@@ -92,7 +92,7 @@
     <div class="wrapper-comp-settings is-active editor-with-buttons general_information" name="general_information-tab" id="settings-tab">
 		<ul class="list-input settings-list">
 			{% for field in fields %}
-				{% if field.name != "_image_url" and field.name != "_resolver_selection" and field.name != "_question_template" and field.name != "_answer_template" and field.name != "_variables" and	field.name != "_raw_editor_xml_data"%}
+				{% if field.name != "_image_url" and field.name != "_resolver_selection" and field.name != "_question_template" and field.name != "_answer_template" and field.name != "_variables" and	field.name != "_raw_editor_xml_data" and field.name != "_answer_template_string"%}
 					<li
 					  class="field comp-setting-entry metadata_entry {% if field.is_set %}is-set{% endif %}"
 					  data-field-name="{{field.name}}"

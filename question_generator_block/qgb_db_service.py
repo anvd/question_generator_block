@@ -44,7 +44,7 @@ def fetch_question_template_data(xblock_id):
     Fetches question template data from the database:
         question_template
         variables
-        answer_template
+        _answer_template_string
     """
     connection = mysql.connector.connect(**s.database)
     
@@ -55,7 +55,7 @@ def fetch_question_template_data(xblock_id):
     variables = {}
     
     # query question_template
-    question_template_query = "SELECT template, url_image, resolver, answer_template FROM edxapp.qgb_question_template where xblock_id = '" + xblock_id + "'"
+    question_template_query = "SELECT template, url_image, resolver, _answer_template_string FROM edxapp.qgb_question_template where xblock_id = '" + xblock_id + "'"
     print question_template_query
     question_template_cursor = connection.cursor()
     question_template_cursor.execute(question_template_query)
@@ -112,7 +112,7 @@ def clean_up_variables_and_expressions(xblock_id, connection):
 
 def insert_question_template(xblock_id, connection, question_template, image_url, resolver, answer_template):
     cursor = connection.cursor()
-    query = "INSERT INTO edxapp.qgb_question_template (xblock_id, template, url_image, resolver, answer_template) VALUES ('" + xblock_id + "', '" + question_template + "', '"  + image_url + "', '" + resolver + "', '" +  answer_template + "')"
+    query = "INSERT INTO edxapp.qgb_question_template (xblock_id, template, url_image, resolver, _answer_template_string) VALUES ('" + xblock_id + "', '" + question_template + "', '"  + image_url + "', '" + resolver + "', '" +  answer_template + "')"
     print query
     cursor.execute(query)
     cursor.close()
@@ -124,7 +124,7 @@ def update_question_template_content(xblock_id, connection, question_template, i
     """
     
     cursor = connection.cursor()
-    query = "UPDATE edxapp.qgb_question_template SET template = '" + question_template + "', url_image = '" + image_url + "', resolver = '" + resolver + "', answer_template = '" + answer_template + "' WHERE xblock_id = '" + xblock_id + "'"
+    query = "UPDATE edxapp.qgb_question_template SET template = '" + question_template + "', url_image = '" + image_url + "', resolver = '" + resolver + "', _answer_template_string = '" + answer_template + "' WHERE xblock_id = '" + xblock_id + "'"
     print query
     cursor.execute(query)
     cursor.close()
