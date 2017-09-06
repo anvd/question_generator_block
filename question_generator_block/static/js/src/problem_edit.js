@@ -108,8 +108,7 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
                 enable_advanced_editor = 'True'; // update global variable
                 enable_advanced_editor_element.val(enable_advanced_editor); // update value to hidden input element
 
-                // TODO: remove button 'Add Variable'
-//                add_variable_button_element.hide();
+                // TODO: Did remove button 'Add Variable' when switching tab
             } else {
                 if(! confirmConversionToTemplate())
                     return;
@@ -144,12 +143,6 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
         	parentRow.remove();
         });
 
-        // hide advanced editor
-//        if (enable_advanced_editor) {
-//            editor_tab_selector.show();
-//        } else {
-//            editor_tab_selector.hide();
-//        }
     });
 
 
@@ -293,35 +286,6 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
         });
     };
 
-
-    var updateEditorMode = function(data) {
-        var handlerUrl = runtime.handlerUrl(xblockElement, 'update_editor_mode');
-        runtime.notify('update_editor_mode', {state: 'start', message: gettext("Updating")});
-
-        console.log('In updateEditorMode:' + JSON.stringify(data));
-
-        $.ajax({
-            type: "POST",
-            url: handlerUrl,
-            data: JSON.stringify(data),
-            dataType: "json",
-            global: false,  // Disable Studio's error handling that conflicts with studio's notify('save') and notify('cancel') :-/
-            success: function(response) { runtime.notify('update_editor_mode', {state: 'end'}); }
-        }).fail(function(jqXHR) {
-            var message = gettext("This may be happening because of an error with our server or your internet connection. Try refreshing the page or making sure you are online.");
-            if (jqXHR.responseText) { // Is there a more specific error message we can show?
-                try {
-                    message = JSON.parse(jqXHR.responseText).error;
-                    if (typeof message === "object" && message.messages) {
-                        // e.g. {"error": {"messages": [{"text": "Unknown user 'bob'!", "type": "error"}, ...]}} etc.
-                        message = $.map(message.messages, function(msg) { return msg.text; }).join(", ");
-                    }
-                } catch (error) { message = jqXHR.responseText.substr(0, 300); }
-            }
-            runtime.notify('error', {title: gettext("Unable to update Editor mode"), message: message});
-        });
-    };
-    
     // Save action
     $(xblockElement).find('a[name=save_button]').bind('click', function(e) {
     	console.log("Save button clicked");
@@ -360,8 +324,11 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
         // 1. question_template_textarea_element
         var question_template = question_template_textarea_element.val();
         console.log('question_template: ' + question_template);
+
+        // image
         var image_url = url_image_input.val();
         console.log('image_url: ' + image_url);
+
 //        var resolver_element = $(xblockElement).find('input[name=Resolver]:checked');
 //        var resolver_selection = resolver_element.val();
 //        console.log('resolver_selection: ' + resolver_selection);
@@ -446,13 +413,7 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
 
 //        debugger;
         // server side validation
-
-        // update editor mode first
-//        var mode_data = {enable_advanced_editor: enable_advanced_editor};
-//        console.log('mode_data:' + JSON.stringify(mode_data));
-//        updateEditorMode(mode_data);
-
-        // perform studio submit
+        // perform studio submit and update default editor mode
         var submit_data = {enable_advanced_editor: enable_advanced_editor, values: fieldValues, defaults: fieldValuesNotSet, question_template: question_template, image_url: image_url, variables: variables, answer_template: answer_template, raw_editor_xml_data: raw_editor_xml_data};
 	    studioSubmit(submit_data);
     });

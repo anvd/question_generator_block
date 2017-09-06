@@ -24,15 +24,7 @@ from resolver_machine import resolver_machine
 
 # import xblock_deletion_handler
 
-try:
-    # Python 3
-    import cElementTree as ET
-except ImportError:
-  try:
-    # Python 2 need to import a different module
-    import xml.etree.cElementTree as ET
-  except ImportError:
-    sys.exit("Failed to import cElementTree from any known place")
+import xml_helper
 
 loader = ResourceLoader(__name__)
 
@@ -94,7 +86,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         default = 'none',
         scope = Scope.content)
 
-    _solver = String(
+    _problem_solver = String(
         display_name = "Problem Solver",
         help = "Select a solver for this problem",
         default = 'none',
@@ -126,10 +118,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
     _answer_template_string = String(
         display_name="Answer Template",
         help="Teacher has to fill the answer template here!!!",
-        default= '''
-            sum = [a] + [b],
-            difference = [a] - [b]
-        ''',
+        default= '''sum = [a] + [b]\ndifference = [a] - [b]''',
         scope=Scope.settings
     )
 
@@ -168,7 +157,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
 </problem>
     '''
 
-    # This field is to store editor's value for next display of xBlock after studio submit
+    # This field is to store editor's value for next display of xBlock after studio edit submit
     _raw_editor_xml_data = String(
         display_name="Raw edit",
         help="Raw edit fields value for XML editor",
@@ -182,16 +171,8 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
     has_score = True
     show_in_read_only_mode = True
 
-    # TODO: display xblock_id to Settings tab
-    # component_location_id = String(
-    #     display_name="Component Location ID",
-    #     help="",
-    #     default=xblock_id,
-    #     scope=Scope.settings
-    # )
-
     editable_fields = ('display_name',
-                       '_solver',
+                       '_problem_solver',
                        'max_attempts',
                        'max_points',
                        'show_points_earned',
@@ -210,10 +191,11 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
     image_url = ""
     question_template_string = ""
     variables = {}
-    # _answer_template_string = ""
     _generated_question = ""
     _generated_variables = {}
     student_answer = ""
+
+    # Define current editor mode
     enable_advanced_editor = False  # True: Editor mode, False: Template mode.
 
 
@@ -258,9 +240,11 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             answer = latest_submission['answer'] # saved "answer information"
             print("previously submitted answer = {}".format(submissions))
 
-            self._generated_question = answer['generated_question']
-            self.generated_answer = answer['generated_answer']  # teacher's generated answer
-            self.student_answer = answer['student_answer'] # student's submitted answer
+            # INCORRECT ???
+            # TODO: remove these
+            # self._generated_question = answer['generated_question']
+            # self.generated_answer = answer['generated_answer']  # teacher's generated answer
+            # self.student_answer = answer['student_answer'] # student's submitted answer
 
             if ('variable_values' in answer): # backward compatibility
                 saved_generated_variables = json.loads(answer['variable_values'])
@@ -326,11 +310,12 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
                 context["fields"].append(field_info)
 
 
-        # self.serialize_data_to_context(context) ??? REMOVE not necessary, remove
+        # self.serialize_data_to_context(context) ??? REMOVE not necessary, remove ???
         context['image_url'] = self._image_url
-        context['resolver_selection'] = self._resolver_selection
+        # context['resolver_selection'] = self._resolver_selection
+        # context['problem_solver'] = self._problem_solver
         context['question_template'] = self._question_template
-        context["variables"] = self._variables
+        context['variables'] = self._variables
         context['answer_template_string'] = self._answer_template_string
         context['is_submitted'] = 'False'
         context['enable_advanced_editor'] = self.enable_advanced_editor
@@ -338,18 +323,9 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         # append xml data for raw xml editor
         context['raw_editor_xml_data'] = self._raw_editor_xml_data
 
-        # fragment.content = loader.render_template('static/html/question_generator_studio_edit.html', context)
         fragment.content = loader.render_template('static/html/problem_edit.html', context)
-        # fragment.content = loader.render_template('static/html/problem_edit_template.html', context)
-        # fragment.content = loader.render_template('static/html/problem_edit_raw.html', context)
-
         fragment.add_css(self.resource_string("static/css/question_generator_block_studio_edit.css"))
-
-        # fragment.add_javascript(loader.load_unicode('static/js/src/question_generator_studio_edit.js'))
-        # fragment.add_javascript(loader.load_unicode('static/js/src/problem_edit_raw.js'))
-        # fragment.add_javascript(loader.load_unicode('static/js/src/problem_edit_template.js'))
         fragment.add_javascript(loader.load_unicode('static/js/src/problem_edit.js'))
-
         fragment.initialize_js('StudioEditableXBlockMixin')
 
         print("context = {}".format(context))
@@ -385,7 +361,7 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         context['saved_answer_template'] = self._answer_template_string # string
 
         # context['saved_resolver_selection'] = self._resolver_selection # Old
-        context['saved_resolver_selection'] = self._solver  # use _solver from editable_fields
+        context['saved_resolver_selection'] = self._problem_solver  # use _problem_solver from editable_fields
 
         print("## AFTER, ADDED FIELDS ##")
         print("context = {}".format(context))
@@ -501,22 +477,13 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         return submit_result
 
     @XBlock.json_handler
-    def update_editor_mode(self, data, suffix=''):
-        print("## Calling FUNCTION update_editor_mode() ###")
-        print("## DEBUG INFO ###")
-        print("enable_advanced_editor = {}".format(data["enable_advanced_editor"]))
-        print("self.enable_advanced_editor before: {}".format(self.enable_advanced_editor))
-        print("## End DEBUG INFO ###")
-        self.enable_advanced_editor = data["enable_advanced_editor"]
-
-        print("self.enable_advanced_editor after: {}".format(self.enable_advanced_editor))
-        print("## End FUNCTION update_editor_mode() ###")
-
-
-    @XBlock.json_handler
     def fe_submit_studio_edits(self, data, suffix=''):
         """
-        AJAX handler for studio edit submission
+        AJAX handler for studio edit submission, two edit modes:
+
+        1. Basic template (Default mode)
+        2. Advanced editor
+
         """
 
         print("## Calling FUNCTION fe_submit_studio_edits() ###")
@@ -569,8 +536,8 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             setattr(self, '_answer_template_string', updated_answer_template)
             setattr(self, '_variables', updated_variables)
 
-            # build xml string to use for advanced editor
-            # TODO: write function to build xml data for raw editor
+            # build xml string for problem raw edit fields,
+            # then update value to field '_raw_editor_xml_data' for editor
             input_data = {
                 'question_template': self.question_template_string,
                 'image_url': self.image_url,
@@ -578,10 +545,10 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
                 'answer_template': self._answer_template_string
             }
 
-            # Convert data to xml
-            xml_string = self.convert_problem_data_to_xml(input_data)
+            # Convert dict data to xml
+            xml_string = xml_helper.convert_problem_data_to_xml(input_data)
 
-            # update value for field attribute
+            # Finally, update value for field attribute
             setattr(self, '_raw_editor_xml_data', xml_string)
 
         elif data['enable_advanced_editor'] == 'True':
@@ -591,9 +558,9 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
 
             # Extract data fields from xml string
             # TODO: Process XML data using XML parser cElementTree,
-            raw_edit_data = self.read_data_from_xml_string(updated_xml_string)
+            raw_edit_data = xml_helper.read_data_from_xml_string(updated_xml_string)
 
-            # TODO: then save to DB model?
+            # TODO: then save to DB model? To remove this line
             # qgb_db_service.update_question_template(self.xblock_id, updated_question_template, updated_url_image, updated_resolver_selection, updated_variables, updated_answer_template)
 
             updated_question_template = raw_edit_data['question_template']
@@ -601,10 +568,11 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             updated_variables = raw_edit_data['variables']
             # get only one firt answer for now. TODO: update to support multi-answers attributes for multiple solutions
             updated_answer_template_dict = raw_edit_data['solutions'][1]
-            # updated_resolver_selection = data['_solver']
+            # updated_resolver_selection = data['problem_solver']
 
             # convert answer dict to string
-            updated_answer_template = self.dict_to_string(updated_answer_template_dict)
+            # updated_answer_template = self.dict_to_string(updated_answer_template_dict)
+            updated_answer_template = xml_helper.dict_to_string(updated_answer_template_dict)
 
 
             print("BEFORE, self._answer_template_string = ")
@@ -678,241 +646,6 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
             return {'result': 'success'}
         else:
             raise JsonHandlerError(400, validation.to_json())
-
-
-    def dict_to_string(self, dict, sep = '\n'):
-
-        result = ""
-
-        for key, value in dict.iteritems():
-            result = result + key + '=' + value
-            result = result + sep
-
-        return result
-
-    @XBlock.json_handler
-    def fe_submit_studio_raw_edits(self, data, suffix=''):
-        """
-        AJAX handler for studio edit submission
-        """
-
-        if self.xblock_id is None:
-            self.xblock_id = unicode(self.location.replace(branch=None, version=None))
-
-        print("## Calling FUNCTION fe_submit_studio_raw_edits() ###")
-        print("## START DEBUG INFO ###")
-        print("All POST fields: {}".format(data))
-        print("### xml_data: ###")
-        print(data['raw_editor_xml_data'])
-
-        # Process raw edit
-        updated_xml_string = data['raw_editor_xml_data']
-
-        # Extract data fields from xml string
-        # TODO: Process XML data using XML parser cElementTree,
-        raw_edit_data = self.read_data_from_xml_string(updated_xml_string)
-
-        # TODO: then save to DB model?
-        # qgb_db_service.update_question_template(self.xblock_id, updated_question_template, updated_url_image, updated_resolver_selection, updated_variables, updated_answer_template)
-
-        updated_question_template = raw_edit_data['question_template']
-        updated_url_image = raw_edit_data['image_url']
-        updated_variables = raw_edit_data['variables']
-        updated_answer_template = raw_edit_data['solutions'][1]  # get only one firt answer for now. TODO: update to support multi-answers attributes for multiple solutions
-        # updated_resolver_selection = data['_solver']
-
-        # "refresh" XBlock's values
-        # update values to global variables
-        self.question_template_string = updated_question_template
-        self.image_url = updated_url_image
-        self.variables = updated_variables
-        self._answer_template_string = updated_answer_template
-        # self.resolver_selection = updated_resolver_selection
-
-        # update values to global fields
-        setattr(self, '_question_template', updated_question_template)
-        setattr(self, '_image_url', updated_url_image)
-        setattr(self, '_answer_template', updated_answer_template)
-        setattr(self, '_variables', updated_variables)
-        # setattr(self, '_resolver_selection', updated_resolver_selection)
-
-        # update problem fields
-        self.raw_editor_xml_data = updated_xml_string
-        setattr(self, '_raw_editor_xml_data', updated_xml_string)
-
-        # HANDLE FIELDS IN editable_fields
-        #
-        # copy from StudioEditableXBlockMixin (can not call parent method)
-        values = {}  # dict of new field values we are updating
-        to_reset = []  # list of field names to delete from this XBlock
-        for field_name in self.editable_fields:
-            field = self.fields[field_name]
-            if field_name in data['values']:
-                if isinstance(field, JSONField):
-                    values[field_name] = field.from_json(data['values'][field_name])
-                else:
-                    raise JsonHandlerError(400, "Unsupported field type: {}".format(field_name))
-            elif field_name in data['defaults'] and field.is_set_on(self):
-                to_reset.append(field_name)
-        self.clean_studio_edits(values)
-        validation = Validation(self.scope_ids.usage_id)
-        # We cannot set the fields on self yet, because even if validation fails, studio is going to save any changes we
-        # make. So we create a "fake" object that has all the field values we are about to set.
-        preview_data = FutureFields(
-            new_fields_dict=values,
-            newly_removed_fields=to_reset,
-            fallback_obj=self
-        )
-        self.validate_field_data(validation, preview_data)
-        if validation:
-            for field_name, value in values.iteritems():
-                setattr(self, field_name, value)
-            for field_name in to_reset:
-                self.fields[field_name].delete_from(self)
-
-            print("## End DEBUG INFO ###")
-            print("## End FUNCTION fe_submit_studio_raw_edits() ###")
-            return {'result': 'success'}
-        else:
-            raise JsonHandlerError(400, validation.to_json())
-
-    def read_data_from_xml_string(self, xml_data):
-        '''
-        Process raw edit for problem data fields in Editor tab:
-
-            1. problem description
-            2. Image url
-            3. variables (name, min_value, max_value, type, decimal_places)
-            4. _answer_template_string
-
-
-        <problem>
-            <description>Given a = [a] and b = [b], c = [c]. Calculate the [sum], [difference] of a and b. </description>
-            <image_group>
-                <image_url link="http://example.com/image1">Image 1</image_url>
-                <image_url link="http://example.com/image2">Image 2</image_url>
-            </image_group>
-            <variable_group>
-                <variable name="a" min="1" max="200" type="integer"/>
-                <variable name="b" min="1.0" max="20.5" type="float" decimal_places="2"/>
-            </variable_group>
-            <solution_group>
-                <solution sum = "[a] + [b] + [c]" difference = "[a] - [b] - [c]">Answer 2</solution>
-                <solution sum = "[b] + [c] + [a]" difference = "[c] - [b] - [a]">Answer 3</solution>
-            </solution_group>
-        </problem>
-
-        :param xml_data:
-        :return:
-        '''
-        print("## CALLING FUNCTION read_data_from_xml_string() ##")
-
-        # Reading the xml data from a string:
-        # fromstring() parses XML from a string directly into an Element, which is the root element of the parsed tree.
-        problem = ET.fromstring(xml_data)
-        problem_childs = problem.getchildren()
-        # print(problem_childs)
-
-        # init a dict to store problem field values extracted from the xml string
-        problem_data_fields = {}
-
-        for field in problem_childs:
-            # print("field.tag: " + field.tag)
-            # print("field.attrib: ", field.attrib)
-            if field.tag == "description":
-                # extract the question template
-                problem_data_fields["question_template"] = field.text
-            elif field.tag == "image_group":
-                # Extract image url
-                #
-                # A problem can have many images
-                # only get first image_url for now
-                # TODO: support multiple images
-                image_urls = field.findall('image_url')  # find all direct children only for this field.
-                # get first image_url
-                problem_data_fields["image_url"] = image_urls[0].get('link')  # get its link attrib
-            elif field.tag == "variable_group":
-                # Extract variables info
-                problem_data_fields["variables"] = {}  # initialize the variables dict
-                # find all direct childs of element 'variable_group'
-                variable_list = field.findall("variable")
-                for variable in variable_list:
-                    variable_attributes = variable.attrib
-                    var_name = variable_attributes["name"]
-                    # if var_type == "float":
-                    #     var_decimal_places = variable_attributes["decimal_places"]
-
-                    # add each variable into the variable dict
-                    problem_data_fields["variables"][var_name] = variable_attributes
-
-            elif field.tag == "solution_group":
-                # Extract the solutions
-                problem_data_fields["solutions"] = {}  # initialize the solutions dict
-                # find all direct childs of element 'solver_group'
-                solver_list = field.findall("solution")
-                i = 0
-                for solver in solver_list:
-                    i = i + 1
-                    solver_attributes = solver.attrib
-                    # add each solution into the problem data
-                    problem_data_fields["solutions"][i] = solver_attributes
-
-        print("## End FUNCTION read_data_from_xml_string() ##")
-
-        return problem_data_fields
-
-    def convert_problem_data_to_xml(self, data):
-        '''
-        Process raw edit for problem data fields in Editor tab:
-
-            1. problem description
-            2. Image url
-            3. variables (name, min_value, max_value, type, decimal_places)
-            4. _answer_template_string
-
-
-        <problem>
-            <description>Given a = [a] and b = [b], c = [c]. Calculate the [sum], [difference] of a and b. </description>
-            <image_group>
-                <image_url link="http://example.com/image1">Image 1</image_url>
-                <image_url link="http://example.com/image2">Image 2</image_url>
-            </image_group>
-            <variable_group>
-                <variable name="a" min="1" max="200" type="integer"/>
-                <variable name="b" min="1.0" max="20.5" type="float" decimal_places="2"/>
-                <variable name="c" min="1" max="200"  type="string"/>
-            </variable_group>
-            <solution_group>
-                <solution sum = "[a] + [b] + [c]" difference = "[a] - [b] - [c]">Answer 2</solution>
-                <solution sum = "[b] + [c] + [a]" difference = "[c] - [b] - [a]">Answer 3</solution>
-            </solution_group>
-        </problem>
-
-        :param xml_data:
-        :return:
-        '''
-        print("## CALLING FUNCTION convert_problem_data_to_xml() ##")
-
-        # Reading the xml data from a string:
-        # fromstring() parses XML from a string directly into an Element, which is the root element of the parsed tree.
-
-        xml_string = ''''''
-        problem = ET.Element('problem')
-
-        description = ET.SubElement(problem, 'description')
-
-        image_group = ET.SubElement(problem, 'image_group')
-        image_url = ET.SubElement(image_group, 'image_url')
-
-        variable_group = ET.SubElement(problem, 'variable_group')
-        variable = ET.SubElement(variable_group, 'variable')
-
-        solution_group = ET.SubElement(problem, 'solution_group')
-        solution = ET.SubElement(solution_group, 'solution')
-
-        print("## End FUNCTION convert_problem_data_to_xml() ##")
-
-        return xml_string
 
 
     @property
