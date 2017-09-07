@@ -3,16 +3,17 @@
 <div class="editor-with-buttons" xmlns="http://www.w3.org/1999/html">
     <div>
         <input type="hidden" class="hidden" name="enable_advanced_editor" value="{{ enable_advanced_editor }}" />
+		<input type="hidden" class="hidden" name="current_editor_mode_name" value="{{ editor_mode_name }}" />
     </div>
 
 	<div name="error-message"></div>
 
     <!-- SWITCH UI DISPLAY OF EDITOR -->
-    <div class="editor-bar">
-        <ul class="editor-tabs">
-            <li><button type="button" id="btn_switch_editor_mode" tab-name="question_template-tab" class="xml-tab advanced-toggle " data-tab="xml" title="Switch Editor mode">Advanced Editor</button></li>
-        </ul>
-    </div>
+    <!--<div class="editor-bar">-->
+        <!--<ul class="editor-tabs">-->
+            <!--<li><button type="button" id="btn_switch_editor_mode" tab-name="question_template-tab" class="xml-tab advanced-toggle " data-tab="xml" title="Switch Editor mode">Advanced Editor</button></li>-->
+        <!--</ul>-->
+    <!--</div>-->
 
 	<div class="wrapper-comp-settings is-active editor-with-buttons question_template" name="question_template-tab" id="question_template-tab">
         <ul class="list-input settings-list" name="question_template_list">
@@ -20,7 +21,7 @@
 	        <li class="field comp-setting-entry metadata_entry">
 				<div class="wrapper-comp-setting">
 					<label class="label setting-label" for="question_template">Question template</label>
-					<textarea name="question_template" rows=10 cols=70>{{ question_template }}</textarea>
+					<textarea name="question_template" rows=10 cols=80>{{ question_template }}</textarea>
 	        	</div>
 	        </li>
 
@@ -47,7 +48,7 @@
 							<th width="13%" class="table_cell_alignment">Type</th>
 							<th width="13%" class="table_cell_alignment">Decimal Places</th>
 							<th width="10%"></th>
-							<th width="5%"></th>
+							<!--<th width="5%"></th>-->
 						</tr>
 
 						{% for variable_name, variable in variables.iteritems %}
@@ -64,7 +65,7 @@
 								</td>
 								<td class="table_cell_alignment number_input_cell"><input type="number" name="variable_value_decimal_places-{{ variable.name }}" class="formula_input_text" min="0" max="7" value="{{ variable.decimal_places }}"></td>
 								<td class="table_cell_alignment"><input type="button" class="remove_button" value="Remove"></td>
-								<td></td>
+								<!--<td></td>-->
 							</tr>
 						{% endfor %}
 					</table>
@@ -75,7 +76,7 @@
 	        <li class="field comp-setting-entry metadata_entry">
 				<div class="wrapper-comp-setting">
 					<label class="label setting-label" for="answer_template">Answer template</label>
-					<textarea name="answer_template" rows=10 cols=70>{{ answer_template_string }}</textarea>
+					<textarea name="answer_template" rows=10 cols=80>{{ answer_template_string }}</textarea>
 	        	</div>
 	        </li>
 
@@ -211,6 +212,11 @@
 					<a href="#" class="button action-primary save-button" name="add_variable_button">Add variable</a>
 				</li>
 			{% endif %}
+
+			<!-- SWITCH UI DISPLAY OF EDITOR -->
+			<li style="margin-right:50px;" class="pull-right">
+				<button type="button" id="btn_switch_editor_mode" tab-name="question_template-tab" data-tab="xml" title="Switch problem edit interface">{{ editor_mode_name }}</button>
+			</li>
 		</ul>
 	</div>
 </div>

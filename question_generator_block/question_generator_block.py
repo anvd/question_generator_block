@@ -28,6 +28,10 @@ import xml_helper
 
 loader = ResourceLoader(__name__)
 
+# Constants
+ADVANCED_EDITOR_NAME = 'Advanced Editor'
+SIMPLE_EDITOR_NAME = 'Simple Template'
+
 
 @XBlock.needs("i18n")
 class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBlockMixin):
@@ -319,6 +323,9 @@ class QuestionGeneratorXBlock(XBlock, SubmittingXBlockMixin, StudioEditableXBloc
         context['answer_template_string'] = self._answer_template_string
         context['is_submitted'] = 'False'
         context['enable_advanced_editor'] = self.enable_advanced_editor
+        context['editor_mode_name'] = SIMPLE_EDITOR_NAME
+        if self.enable_advanced_editor:
+            context['editor_mode_name'] = ADVANCED_EDITOR_NAME
 
         # append xml data for raw xml editor
         context['raw_editor_xml_data'] = self._raw_editor_xml_data

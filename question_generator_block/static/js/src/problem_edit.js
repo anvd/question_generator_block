@@ -21,24 +21,24 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
 
     // define tab id mapping of current tab to target tab
     var target_tabName_map = {
-        'question_template-tab' : "Basic Template",
+        'question_template-tab' : "Simple Template",
         'editor-tab' : "Advanced Editor"
     }
 
     var error_message_element = $(xblockElement).find('div[name=error-message]');
     var question_template_textarea_element = $(xblockElement).find('textarea[name=question_template]');
-    var variables_table_element = $(xblockElement).find('table[name=variables_table]');
     var url_image_input = $(xblockElement).find('input[name=image_url]');
+    var variables_table_element = $(xblockElement).find('table[name=variables_table]');
+    var add_variable_button_element = $(xblockElement).find('li[name=add_variable]');
     var answer_template_textarea_element =  $(xblockElement).find('textarea[name=answer_template]');
-
+    // for editor mode toggle
     var enable_advanced_editor_element = $(xblockElement).find('input[name=enable_advanced_editor]');
     var enable_advanced_editor = enable_advanced_editor_element.val();
-    var xml_editor_element = $(xblockElement).find('textarea[name=raw_editor_xml_data]');
-    var add_variable_button_element = $(xblockElement).find('li[name=add_variable]');
-//    var template_tab_selector = $(xblockElement).find('li[id=question_template-tab]');
-//    var editor_tab_selector = $(xblockElement).find('li[id=editor-tab]');
+    var editor_mode_name_element = $(xblockElement).find('input[name=current_editor_mode_name]');
+    var editor_mode_name = editor_mode_name_element.val();
 
     // DOM object for xml editor
+    var xml_editor_element = $(xblockElement).find('textarea[name=raw_editor_xml_data]');
     var my_XML_Box = '.xml-box';
 
     // WORKING
@@ -105,10 +105,8 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
                     return;
                 // if confirmed, proceed
                 // update editor mode
-                enable_advanced_editor = 'True'; // update global variable
-                enable_advanced_editor_element.val(enable_advanced_editor); // update value to hidden input element
-
-                // TODO: Did remove button 'Add Variable' when switching tab
+                enable_advanced_editor = 'True'; // update JS global variable
+                enable_advanced_editor_element.val(enable_advanced_editor); // update value to hidden element enable_advanced_editor
             } else {
                 if(! confirmConversionToTemplate())
                     return;
@@ -117,6 +115,7 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
                 enable_advanced_editor = 'False'; // update global variable
                 enable_advanced_editor_element.val(enable_advanced_editor); // update value to hidden input element
             }
+            // Already removed button 'Add Variable' in tab switching function
 
             // update attributes for the current tab <li> tag
             // update text
@@ -129,6 +128,15 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
             $('#btn_switch_editor_mode').text(target_tabName_map[current_tab]);
             // update attribute
             $('#btn_switch_editor_mode').attr('tab-name',target_tabId_map[current_tab]);
+
+            // targeted editor_mode_name
+//            TODO: Check why this cause JS error ???
+//            editor_mode_name = target_tabName_map[current_tab]); // update targeted editor_mode_name
+////            editor_mode_name = 'Advanced Editor'; // update targeted editor_mode_name
+//            editor_mode_name_element.val(editor_mode_name); // update value for hidden element editor_mode_name
+//            // update title attribute for the editor mode toggle button
+////            $('#btn_switch_editor_mode').attr('title', 'Switch to ' + editor_mode_name + ' mode'); // update title for the Editor mode button
+//            $('#btn_switch_editor_mode').title('Switch to ' + editor_mode_name + ' mode'); // update title for the Editor mode button
 
             // switch to the targeted tab
             tab_switch(target_tabId_map[current_tab]);
@@ -151,7 +159,7 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
      Returns true if the user clicked OK, else false.
      */
     function confirmConversionToXml() {
-        return confirm(gettext('If you use the Advanced Editor, this problem will be converted to XML and you will not be able to return to the Simple Editor Interface.\n\nProceed to the Advanced Editor and convert this problem to XML?')); // eslint-disable-line max-len, no-alert
+        return confirm(gettext('If you use the Advanced Editor, this problem template will be converted to XML for raw edit. The default interface is still Simple Template. You can toggle between them\n\nProceed to the Advanced Editor?')); // eslint-disable-line max-len, no-alert
     };
 
     /*
@@ -159,7 +167,7 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
      Returns true if the user clicked OK, else false.
      */
     function confirmConversionToTemplate() {
-        return confirm(gettext('Are you sure you want to convert back to Simple Editor Interface.\n\nProceed ?')); // eslint-disable-line max-len, no-alert
+        return confirm(gettext('Are you sure you want to switch back to Simple Template interface.\n\nProceed ?')); // eslint-disable-line max-len, no-alert
     };
 
 
@@ -536,8 +544,9 @@ function StudioEditableXBlockMixin(runtime, xblockElement) {
 
     	
     	// eighth column: empty column
-    	var eighth_column  = $('<td></td>');
-    	new_row.append(eighth_column);
+//    	TODO: not neccessary, remove this empty column ???
+//    	var eighth_column  = $('<td></td>');
+//    	new_row.append(eighth_column);
     	
     	
     	// append the new row to variables table

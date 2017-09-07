@@ -128,9 +128,13 @@ def convert_problem_data_to_xml(data):
         solution.set(attrib_key, attrib_value)
         solution.text = 'Answer template'
 
-    xml_string = ET.tostring(problem)
+    print "Problem elem dum = ", ET.dump(problem)
 
-    print "xml dum of proplem = ", ET.dump(problem)
+    indented_problem = indent(problem)
+    print "after indent ,Problem elem dum = ", ET.dump(indented_problem)
+
+    xml_string = ET.tostring(indented_problem)
+
     print "Output xml string = ", xml_string
     print("## End FUNCTION convert_problem_data_to_xml() ##")
 
@@ -229,3 +233,39 @@ def dict_to_string(dict, sep = '\n'):
         result = result + sep
 
     return result
+
+# TODO: check why this function has problem? Only return the last child tag of elem.
+# in-place prettyprint formatter
+# def indent(elem, level=0):
+#     i = "\n" + level*"  "
+#     if len(elem):
+#         if not elem.text or not elem.text.strip():
+#             elem.text = i + "  "
+#         if not elem.tail or not elem.tail.strip():
+#             elem.tail = i
+#         for elem in elem:
+#             indent(elem, level+1)
+#         if not elem.tail or not elem.tail.strip():
+#             elem.tail = i
+#     else:
+#         if level and (not elem.tail or not elem.tail.strip()):
+#             elem.tail = i
+#     return elem
+
+# Follow https://stackoverflow.com/questions/749796/pretty-printing-xml-in-python
+def indent(elem, level=0):
+    i = "\n" + level*"  "
+    j = "\n" + (level-1)*"  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for subelem in elem:
+            indent(subelem, level+1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = j
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = j
+    return elem
